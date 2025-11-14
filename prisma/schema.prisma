@@ -1,0 +1,262 @@
+// prisma/schema.prisma
+//
+// Prisma schema for ViniBank.
+//
+// Models:
+// - User: represents a bank customer (for now just you / demo users).
+// - Account: checking, savings, credit card, etc.
+// - Transaction: money movements between accounts (debits, credits, transfers).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Types of accounts that ViniBank supports.
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT
+}
+
+// Types of transactions.
+// - DEBIT: money leaving an account (purchase, ATM, etc.).
+// - CREDIT: money entering an account (salary, deposit, etc.).
+// - TRANSFER: internal transfer between accounts.
+enum TransactionKind {
+  DEBIT
+  CREDIT
+  TRANSFER
+}
+
+// Roles for RBAC
+enum Role {
+  USER
+  ADMIN
+}
+
+// Category kind
+enum CategoryKind {
+  EXPENSE
+  INCOME
+}
+
+// Main user record.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  // For email+password accounts. Google users will have this as null.
+  passwordHash String?
+
+  // Role for RBAC (default USER)
+  role         Role     @default(USER)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts            Account[]
+  auditLogs           AuditLog[]
+  categories          Category[]
+  budgets             Budget[]
+  encryptedData       EncryptedUserData?
+  encryptionAuditLogs EncryptionAuditLog[]
+  idempotencyKeys     IdempotencyKey[]
+}
+
+
+// Bank account entity.
+model Account {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // What type of account (checking, savings, credit…)
+  type AccountType
+
+  // Display name, e.g. "Primary checking"
+  name String
+
+  // Masked account/card number for UI, e.g. "•••• 1023"
+  mask String
+
+  // Encrypted full account number (AES-256-GCM)
+  encryptedAccountNumber String?
+  
+  // Encrypted routing number (AES-256-GCM)
+  encryptedRoutingNumber String?
+  
+  // SHA-256 hash of account number for searching/indexing
+  accountNumberHash String?
+
+  // ISO currency code, e.g. "USD", "BRL"
+  currency String @default("USD")
+
+  // Balance in cents for precision (no floats).
+  balanceCents Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations to transactions; we split "from" and "to"
+  // so we can model transfers that move from one account
+  // into another.
+  transactionsFrom Transaction[] @relation("FromAccount")
+  transactionsTo   Transaction[] @relation("ToAccount")
+}
+
+// Individual transaction row.
+model Transaction {
+  id String @id @default(cuid())
+
+  // For simple DEBIT/CREDIT, you may use only one side.
+  // For TRANSFER, both fromAccount and toAccount will be set.
+  fromAccountId String?
+  toAccountId   String?
+
+  fromAccount Account? @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccount   Account? @relation("ToAccount", fields: [toAccountId], references: [id])
+
+  // Human readable description, e.g. "Groceries · Market Nova Vida"
+  description String
+
+  // Amount in cents (can be negative for debits).
+  amountCents Int
+
+  kind TransactionKind
+
+  // When it appeared on the statement.
+  postedAt DateTime @default(now())
+
+  // When the record was created in the system.
+  createdAt DateTime @default(now())
+
+  // Optional category
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+}
+
+// Audit trail for sensitive actions
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+// User-defined categories for transactions
+model Category {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  name      String
+  kind      CategoryKind
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  transactions Transaction[]
+  budgets      Budget[]
+}
+
+// Monthly budget per category for a user
+model Budget {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  month       Int
+  year        Int
+  limitCents  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, categoryId, month, year])
+}
+
+// Encrypted sensitive user data (PII)
+model EncryptedUserData {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Encrypted SSN/Tax ID (AES-256-GCM)
+  encryptedSSN String?
+  
+  // SHA-256 hash of SSN for searching
+  ssnHash String?
+  
+  // Encrypted full legal name (AES-256-GCM)
+  encryptedLegalName String?
+  
+  // Encrypted date of birth (AES-256-GCM)
+  encryptedDateOfBirth String?
+  
+  // Encrypted phone number (AES-256-GCM)
+  encryptedPhoneNumber String?
+  
+  // SHA-256 hash of phone for searching
+  phoneHash String?
+  
+  // Encrypted address (AES-256-GCM)
+  encryptedAddress String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Audit log for all decryption operations (compliance & security)
+model EncryptionAuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  // What field was decrypted (e.g., "Account.encryptedAccountNumber")
+  fieldName String
+  
+  // Why it was decrypted (e.g., "User viewed full account number")
+  reason    String
+  
+  // IP address of requester
+  ipAddress String?
+  
+  // User agent
+  userAgent String?
+  
+  // Additional metadata
+  meta      Json?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([fieldName, createdAt])
+}
+
+// Idempotency tracking to prevent duplicate processing of sensitive operations
+model IdempotencyKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  // Client-supplied key
+  key       String
+
+  // Logical operation e.g. "transfer", "transfer:user"
+  endpoint  String
+
+  // Optional associated resource (e.g. transaction id)
+  transactionId String?
+
+  // Optionally store a JSON response for replay
+  response  Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint, key])
+  @@index([createdAt])
+}
