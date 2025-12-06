@@ -45,6 +45,13 @@ enum CategoryKind {
   INCOME
 }
 
+// Savings goal status
+enum SavingsGoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 // Main user record.
 model User {
   id           String   @id @default(cuid())
@@ -63,6 +70,7 @@ model User {
   auditLogs           AuditLog[]
   categories          Category[]
   budgets             Budget[]
+  savingsGoals        SavingsGoal[]
   encryptedData       EncryptedUserData?
   encryptionAuditLogs EncryptionAuditLog[]
   idempotencyKeys     IdempotencyKey[]
@@ -179,6 +187,36 @@ model Budget {
   @@unique([userId, categoryId, month, year])
 }
 
+// Savings Goals - user-defined financial targets
+model SavingsGoal {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  
+  // Goal details
+  name        String            // e.g., "Vacation to Europe", "Emergency Fund"
+  targetCents Int               // Target amount in cents
+  currentCents Int              @default(0) // Current saved amount in cents
+  
+  // Timeline
+  targetDate  DateTime?         // Optional deadline
+  
+  // Status tracking
+  status      SavingsGoalStatus @default(ACTIVE)
+  completedAt DateTime?         // When goal was achieved
+  
+  // Metadata
+  description String?           // Optional details
+  color       String?           // UI color for visual distinction
+  icon        String?           // Emoji or icon identifier
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  @@index([userId, status])
+  @@index([targetDate])
+}
+
 // Encrypted sensitive user data (PII)
 model EncryptedUserData {
   id     String @id @default(cuid())
@@ -259,4 +297,30 @@ model IdempotencyKey {
 
   @@unique([userId, endpoint, key])
   @@index([createdAt])
+}
+
+// Password reset tokens for secure recovery flows
+model PasswordReset {
+  id String @id @default(cuid())
+
+  // Email address for password recovery
+  email String @unique
+
+  // Secure token (256-bit hex) sent to user's email
+  token String @unique
+
+  // Token expiration (typically 24-48 hours)
+  expiresAt DateTime
+
+  // Track if token was used
+  usedAt DateTime?
+
+  // Additional metadata
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
 }

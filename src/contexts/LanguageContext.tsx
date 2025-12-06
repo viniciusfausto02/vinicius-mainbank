@@ -12,6 +12,7 @@ import React, {
   useContext,
   useMemo,
   useState,
+  useEffect,
   ReactNode,
 } from "react";
 
@@ -203,6 +204,10 @@ const translations = {
     categoriesErrorDelete: "Could not delete category",
     categoriesLoading: "Loading categories…",
     
+    // ====== Reclassify Dropdown ======
+    reclassifyLoading: "Loading…",
+    reclassifyUncategorized: "Uncategorized",
+    
     // ====== Insights Panel ======
     insightsIncomeLabel: "Income (30d)",
     insightsExpensesLabel: "Expenses (30d)",
@@ -240,6 +245,7 @@ const translations = {
     tabsAccounts: "Accounts",
     tabsTransfer: "Transfer",
     tabsInsights: "Insights",
+    tabsCharts: "Charts",
     tabsBudgets: "Budgets",
     tabsCategories: "Categories",
     tabsTransactions: "Transactions",
@@ -269,8 +275,89 @@ const translations = {
     txExportCSV: "Export CSV",
     txNoResults: "No matching transactions",
     
+    // ====== Charts Panel ======
+    chartsAccountDistribution: "Account Distribution",
+    chartsIncomeExpenses: "Income vs Expenses (30 days)",
+    chartsIncome: "Income",
+    chartsExpenses: "Expenses",
+    chartsNetFlow: "Net Flow",
+    chartsRatio: "Income/Expense",
+    chartsTxCount: "Transactions",
+    chartsActivity7d: "Activity (Last 7 days)",
+    chartsNoData: "No transactions yet",
+    chartsAverage: "Average",
+    chartsHighest: "Highest",
+    chartsLowest: "Lowest",
+    chartsTotal7d: "Total 7d",
+    
     // ====== Transfer Errors ======
     transferInsufficientFunds: "Insufficient funds in the source account.",
+    
+    // ====== Forgot Password Page ======
+    forgotPasswordTitle: "Reset Password",
+    forgotPasswordDescription: "Enter your email to receive a password recovery link",
+    forgotPasswordEmailLabel: "Email Address",
+    forgotPasswordEmailPlaceholder: "you@example.com",
+    forgotPasswordSendButton: "Send Recovery Link",
+    forgotPasswordSendingButton: "Sending...",
+    forgotPasswordSuccessTitle: "✓ Email sent successfully!",
+    forgotPasswordSuccessMessage: "Check your email inbox for a password recovery link. The link expires in 24 hours.",
+    forgotPasswordSuccessFooter: "Don't see the email? Check your spam folder or",
+    forgotPasswordTryAgain: "try again",
+    forgotPasswordBackToLogin: "Back to Login",
+    forgotPasswordOr: "Or",
+    forgotPasswordNoAccount: "Don't have an account?",
+    forgotPasswordSignUp: "Sign up",
+    forgotPasswordSecurityTip: "💡 Security Tip:",
+    forgotPasswordSecurityMessage: "Never share your recovery link. Only use links from official emails.",
+    forgotPasswordErrorEmail: "Please enter a valid email address",
+    forgotPasswordErrorSend: "Failed to send recovery email",
+    forgotPasswordErrorUnexpected: "An unexpected error occurred",
+    forgotPasswordSuccessToast: "Recovery email sent! Check your inbox.",
+    
+    // ====== Reset Password Page ======
+    resetPasswordTitle: "Create New Password",
+    resetPasswordDescription: "Your password must be at least 8 characters long",
+    resetPasswordTokenLabel: "Recovery Token",
+    resetPasswordNewPasswordLabel: "New Password",
+    resetPasswordNewPasswordPlaceholder: "Minimum 8 characters",
+    resetPasswordConfirmLabel: "Confirm Password",
+    resetPasswordConfirmPlaceholder: "Re-enter your password",
+    resetPasswordSubmitButton: "Reset Password",
+    resetPasswordSubmittingButton: "Resetting...",
+    resetPasswordStrengthWeak: "Weak",
+    resetPasswordStrengthMedium: "Medium",
+    resetPasswordStrengthStrong: "Strong",
+    resetPasswordStrengthLabel: "Password strength:",
+    resetPasswordSuccessTitle: "✓ Password reset successful!",
+    resetPasswordSuccessMessage: "Your password has been changed. You can now log in with your new password.",
+    resetPasswordSuccessButton: "Go to Login",
+    resetPasswordSecurityTip: "💡 Password Tips:",
+    resetPasswordSecurityTip1: "• Use a combination of letters, numbers, and symbols",
+    resetPasswordSecurityTip2: "• Avoid common words or personal information",
+    resetPasswordSecurityTip3: "• Never reuse passwords from other accounts",
+    resetPasswordErrorToken: "Invalid or missing recovery token",
+    resetPasswordErrorPassword: "Password must be at least 8 characters",
+    resetPasswordErrorMismatch: "Passwords do not match",
+    resetPasswordErrorInvalid: "Invalid or expired recovery token",
+    resetPasswordErrorFailed: "Failed to reset password",
+    resetPasswordErrorUnexpected: "An unexpected error occurred",
+    resetPasswordSuccessToast: "Password reset successfully!",
+    resetPasswordEmailLabel: "Email",
+    resetPasswordPasswordPlaceholder: "Enter new password",
+    resetPasswordConfirmPasswordLabel: "Confirm new password",
+    resetPasswordReqLength: "At least 8 characters",
+    resetPasswordReqMatch: "Passwords match",
+    resetPasswordBackButton: "← Back to request recovery",
+    resetPasswordTipsTitle: "Password Tips:",
+    resetPasswordTipsBody: "Use uppercase, lowercase, numbers, and special characters for maximum security.",
+    
+    // ====== Confirm Dialog ======
+    confirmTransfer: "Confirm Transfer",
+    confirmUserTransfer: "Confirm User Transfer",
+    confirmTransferMessage: "Transfer ${amount} from ${from} to ${to}?",
+    confirmTransferButton: "Transfer",
+    confirmCancelButton: "Cancel",
   },
 
   pt: {
@@ -457,6 +544,10 @@ const translations = {
     categoriesErrorDelete: "Não foi possível excluir categoria",
     categoriesLoading: "Carregando categorias…",
     
+    // ====== Reclassify Dropdown ======
+    reclassifyLoading: "Carregando…",
+    reclassifyUncategorized: "Sem categoria",
+    
     // ====== Insights Panel ======
     insightsIncomeLabel: "Receitas (30d)",
     insightsExpensesLabel: "Despesas (30d)",
@@ -494,6 +585,7 @@ const translations = {
     tabsAccounts: "Contas",
     tabsTransfer: "Transferir",
     tabsInsights: "Insights",
+    tabsCharts: "Gráficos",
     tabsBudgets: "Orçamentos",
     tabsCategories: "Categorias",
     tabsTransactions: "Transações",
@@ -522,9 +614,90 @@ const translations = {
     txSortAmount: "Valor",
     txExportCSV: "Exportar CSV",
     txNoResults: "Nenhuma transação encontrada",
-
+    
+    // ====== Charts Panel ======
+    chartsAccountDistribution: "Distribuição de Contas",
+    chartsIncomeExpenses: "Receitas vs Despesas (30 dias)",
+    chartsIncome: "Receitas",
+    chartsExpenses: "Despesas",
+    chartsNetFlow: "Fluxo Líquido",
+    chartsRatio: "Receita/Despesa",
+    chartsTxCount: "Transações",
+    chartsActivity7d: "Atividade (Últimos 7 dias)",
+    chartsNoData: "Nenhuma transação ainda",
+    chartsAverage: "Média",
+    chartsHighest: "Mais alto",
+    chartsLowest: "Mais baixo",
+    chartsTotal7d: "Total 7d",
+    
     // ====== Transfer Errors ======
     transferInsufficientFunds: "Saldo insuficiente na conta de origem.",
+    
+    // ====== Forgot Password Page ======
+    forgotPasswordTitle: "Recuperar Senha",
+    forgotPasswordDescription: "Digite seu email para receber um link de recuperação de senha",
+    forgotPasswordEmailLabel: "Endereço de Email",
+    forgotPasswordEmailPlaceholder: "voce@exemplo.com",
+    forgotPasswordSendButton: "Enviar Link de Recuperação",
+    forgotPasswordSendingButton: "Enviando...",
+    forgotPasswordSuccessTitle: "✓ Email enviado com sucesso!",
+    forgotPasswordSuccessMessage: "Verifique sua caixa de entrada para um link de recuperação de senha. O link expira em 24 horas.",
+    forgotPasswordSuccessFooter: "Não vê o email? Verifique sua pasta de spam ou",
+    forgotPasswordTryAgain: "tente novamente",
+    forgotPasswordBackToLogin: "Voltar para o Login",
+    forgotPasswordOr: "Ou",
+    forgotPasswordNoAccount: "Não tem uma conta?",
+    forgotPasswordSignUp: "Criar conta",
+    forgotPasswordSecurityTip: "💡 Dica de Segurança:",
+    forgotPasswordSecurityMessage: "Nunca compartilhe seu link de recuperação. Use apenas links de emails oficiais.",
+    forgotPasswordErrorEmail: "Por favor insira um endereço de email válido",
+    forgotPasswordErrorSend: "Falha ao enviar email de recuperação",
+    forgotPasswordErrorUnexpected: "Ocorreu um erro inesperado",
+    forgotPasswordSuccessToast: "Email de recuperação enviado! Verifique sua caixa de entrada.",
+    
+    // ====== Reset Password Page ======
+    resetPasswordTitle: "Criar Nova Senha",
+    resetPasswordDescription: "Sua senha deve ter pelo menos 8 caracteres",
+    resetPasswordTokenLabel: "Token de Recuperação",
+    resetPasswordNewPasswordLabel: "Nova Senha",
+    resetPasswordNewPasswordPlaceholder: "Mínimo 8 caracteres",
+    resetPasswordConfirmLabel: "Confirmar Senha",
+    resetPasswordConfirmPlaceholder: "Digite sua senha novamente",
+    resetPasswordSubmitButton: "Redefinir Senha",
+    resetPasswordSubmittingButton: "Redefinindo...",
+    resetPasswordStrengthWeak: "Fraca",
+    resetPasswordStrengthMedium: "Média",
+    resetPasswordStrengthStrong: "Forte",
+    resetPasswordStrengthLabel: "Força da senha:",
+    resetPasswordSuccessTitle: "✓ Senha redefinida com sucesso!",
+    resetPasswordSuccessMessage: "Sua senha foi alterada. Agora você pode fazer login com sua nova senha.",
+    resetPasswordSuccessButton: "Ir para o Login",
+    resetPasswordSecurityTip: "💡 Dicas de Senha:",
+    resetPasswordSecurityTip1: "• Use uma combinação de letras, números e símbolos",
+    resetPasswordSecurityTip2: "• Evite palavras comuns ou informações pessoais",
+    resetPasswordSecurityTip3: "• Nunca reutilize senhas de outras contas",
+    resetPasswordErrorToken: "Token de recuperação inválido ou ausente",
+    resetPasswordErrorPassword: "A senha deve ter pelo menos 8 caracteres",
+    resetPasswordErrorMismatch: "As senhas não coincidem",
+    resetPasswordErrorInvalid: "Token de recuperação inválido ou expirado",
+    resetPasswordErrorFailed: "Falha ao redefinir senha",
+    resetPasswordErrorUnexpected: "Ocorreu um erro inesperado",
+    resetPasswordSuccessToast: "Senha redefinida com sucesso!",
+    resetPasswordEmailLabel: "E-mail",
+    resetPasswordPasswordPlaceholder: "Digite a nova senha",
+    resetPasswordConfirmPasswordLabel: "Confirme a nova senha",
+    resetPasswordReqLength: "Pelo menos 8 caracteres",
+    resetPasswordReqMatch: "As senhas coincidem",
+    resetPasswordBackButton: "← Voltar para solicitar recuperação",
+    resetPasswordTipsTitle: "Dicas de Senha:",
+    resetPasswordTipsBody: "Use maiúsculas, minúsculas, números e caracteres especiais para máxima segurança.",
+    
+    // ====== Confirm Dialog ======
+    confirmTransfer: "Confirmar Transferência",
+    confirmUserTransfer: "Confirmar Transferência de Usuário",
+    confirmTransferMessage: "Transferir ${amount} de ${from} para ${to}?",
+    confirmTransferButton: "Transferir",
+    confirmCancelButton: "Cancelar",
   },
 
   es: {
@@ -702,6 +875,10 @@ const translations = {
     categoriesErrorDelete: "No se pudo eliminar la categoría",
     categoriesLoading: "Cargando categorías…",
     
+    // ====== Reclassify Dropdown ======
+    reclassifyLoading: "Cargando…",
+    reclassifyUncategorized: "Sin categoría",
+    
     insightsIncomeLabel: "Ingresos (30d)",
     insightsExpensesLabel: "Gastos (30d)",
     insightsErrorLoad: "Error al cargar información",
@@ -737,6 +914,7 @@ const translations = {
     tabsAccounts: "Cuentas",
     tabsTransfer: "Transferir",
     tabsInsights: "Insights",
+    tabsCharts: "Gráficos",
     tabsBudgets: "Presupuestos",
     tabsCategories: "Categorías",
     tabsTransactions: "Transacciones",
@@ -765,9 +943,90 @@ const translations = {
     txSortAmount: "Monto",
     txExportCSV: "Exportar CSV",
     txNoResults: "No hay transacciones coincidentes",
+    
+    // ====== Charts Panel ======
+    chartsAccountDistribution: "Distribución de Cuentas",
+    chartsIncomeExpenses: "Ingresos vs Gastos (30 días)",
+    chartsIncome: "Ingresos",
+    chartsExpenses: "Gastos",
+    chartsNetFlow: "Flujo Neto",
+    chartsRatio: "Ingreso/Gasto",
+    chartsTxCount: "Transacciones",
+    chartsActivity7d: "Actividad (Últimos 7 días)",
+    chartsNoData: "Sin transacciones todavía",
+    chartsAverage: "Promedio",
+    chartsHighest: "Más alto",
+    chartsLowest: "Más bajo",
+    chartsTotal7d: "Total 7d",
 
     // ====== Transfer Errors ======
     transferInsufficientFunds: "Fondos insuficientes en la cuenta de origen.",
+    
+    // ====== Forgot Password Page ======
+    forgotPasswordTitle: "Restablecer Contraseña",
+    forgotPasswordDescription: "Ingrese su correo electrónico para recibir un enlace de recuperación de contraseña",
+    forgotPasswordEmailLabel: "Dirección de Correo Electrónico",
+    forgotPasswordEmailPlaceholder: "tu@ejemplo.com",
+    forgotPasswordSendButton: "Enviar Enlace de Recuperación",
+    forgotPasswordSendingButton: "Enviando...",
+    forgotPasswordSuccessTitle: "✓ ¡Correo enviado con éxito!",
+    forgotPasswordSuccessMessage: "Revise su bandeja de entrada para un enlace de recuperación de contraseña. El enlace expira en 24 horas.",
+    forgotPasswordSuccessFooter: "¿No ve el correo? Revise su carpeta de spam o",
+    forgotPasswordTryAgain: "intente nuevamente",
+    forgotPasswordBackToLogin: "Volver al Inicio de Sesión",
+    forgotPasswordOr: "O",
+    forgotPasswordNoAccount: "¿No tiene una cuenta?",
+    forgotPasswordSignUp: "Registrarse",
+    forgotPasswordSecurityTip: "💡 Consejo de Seguridad:",
+    forgotPasswordSecurityMessage: "Nunca comparta su enlace de recuperación. Use solo enlaces de correos oficiales.",
+    forgotPasswordErrorEmail: "Por favor ingrese una dirección de correo electrónico válida",
+    forgotPasswordErrorSend: "Error al enviar correo de recuperación",
+    forgotPasswordErrorUnexpected: "Ocurrió un error inesperado",
+    forgotPasswordSuccessToast: "¡Correo de recuperación enviado! Revise su bandeja de entrada.",
+    
+    // ====== Reset Password Page ======
+    resetPasswordTitle: "Crear Nueva Contraseña",
+    resetPasswordDescription: "Su contraseña debe tener al menos 8 caracteres",
+    resetPasswordTokenLabel: "Token de Recuperación",
+    resetPasswordNewPasswordLabel: "Nueva Contraseña",
+    resetPasswordNewPasswordPlaceholder: "Mínimo 8 caracteres",
+    resetPasswordConfirmLabel: "Confirmar Contraseña",
+    resetPasswordConfirmPlaceholder: "Vuelva a ingresar su contraseña",
+    resetPasswordSubmitButton: "Restablecer Contraseña",
+    resetPasswordSubmittingButton: "Restableciendo...",
+    resetPasswordStrengthWeak: "Débil",
+    resetPasswordStrengthMedium: "Media",
+    resetPasswordStrengthStrong: "Fuerte",
+    resetPasswordStrengthLabel: "Fuerza de la contraseña:",
+    resetPasswordSuccessTitle: "✓ ¡Contraseña restablecida con éxito!",
+    resetPasswordSuccessMessage: "Su contraseña ha sido cambiada. Ahora puede iniciar sesión con su nueva contraseña.",
+    resetPasswordSuccessButton: "Ir al Inicio de Sesión",
+    resetPasswordSecurityTip: "💡 Consejos de Contraseña:",
+    resetPasswordSecurityTip1: "• Use una combinación de letras, números y símbolos",
+    resetPasswordSecurityTip2: "• Evite palabras comunes o información personal",
+    resetPasswordSecurityTip3: "• Nunca reutilice contraseñas de otras cuentas",
+    resetPasswordErrorToken: "Token de recuperación inválido o ausente",
+    resetPasswordErrorPassword: "La contraseña debe tener al menos 8 caracteres",
+    resetPasswordErrorMismatch: "Las contraseñas no coinciden",
+    resetPasswordErrorInvalid: "Token de recuperación inválido o expirado",
+    resetPasswordErrorFailed: "Error al restablecer contraseña",
+    resetPasswordErrorUnexpected: "Ocurrió un error inesperado",
+    resetPasswordSuccessToast: "¡Contraseña restablecida con éxito!",
+    resetPasswordEmailLabel: "Correo electrónico",
+    resetPasswordPasswordPlaceholder: "Ingrese nueva contraseña",
+    resetPasswordConfirmPasswordLabel: "Confirme nueva contraseña",
+    resetPasswordReqLength: "Al menos 8 caracteres",
+    resetPasswordReqMatch: "Las contraseñas coinciden",
+    resetPasswordBackButton: "← Volver a solicitar recuperación",
+    resetPasswordTipsTitle: "Consejos de Contraseña:",
+    resetPasswordTipsBody: "Use mayúsculas, minúsculas, números y caracteres especiales para máxima seguridad.",
+    
+    // ====== Confirm Dialog ======
+    confirmTransfer: "Confirmar Transferencia",
+    confirmUserTransfer: "Confirmar Transferencia de Usuario",
+    confirmTransferMessage: "¿Transferir ${amount} de ${from} a ${to}?",
+    confirmTransferButton: "Transferir",
+    confirmCancelButton: "Cancelar",
   },
 
   de: {
@@ -945,6 +1204,10 @@ const translations = {
     categoriesErrorDelete: "Kategorie konnte nicht gelöscht werden",
     categoriesLoading: "Kategorien werden geladen…",
     
+    // ====== Reclassify Dropdown ======
+    reclassifyLoading: "Wird geladen…",
+    reclassifyUncategorized: "Ohne Kategorie",
+    
     insightsIncomeLabel: "Einnahmen (30T)",
     insightsExpensesLabel: "Ausgaben (30T)",
     insightsErrorLoad: "Fehler beim Laden der Einblicke",
@@ -980,6 +1243,7 @@ const translations = {
     tabsAccounts: "Konten",
     tabsTransfer: "Überweisen",
     tabsInsights: "Insights",
+    tabsCharts: "Diagramme",
     tabsBudgets: "Budgets",
     tabsCategories: "Kategorien",
     tabsTransactions: "Transaktionen",
@@ -1008,9 +1272,90 @@ const translations = {
     txSortAmount: "Betrag",
     txExportCSV: "CSV exportieren",
     txNoResults: "Keine passenden Transaktionen",
+    
+    // ====== Charts Panel ======
+    chartsAccountDistribution: "Kontoverteilung",
+    chartsIncomeExpenses: "Einnahmen vs. Ausgaben (30 Tage)",
+    chartsIncome: "Einnahmen",
+    chartsExpenses: "Ausgaben",
+    chartsNetFlow: "Netto-Fluss",
+    chartsRatio: "Einnahmen/Ausgaben",
+    chartsTxCount: "Transaktionen",
+    chartsActivity7d: "Aktivität (Letzte 7 Tage)",
+    chartsNoData: "Noch keine Transaktionen",
+    chartsAverage: "Durchschnitt",
+    chartsHighest: "Höchster",
+    chartsLowest: "Niedrigster",
+    chartsTotal7d: "Gesamt 7T",
 
     // ====== Transfer Errors ======
     transferInsufficientFunds: "Unzureichende Mittel auf dem Quellkonto.",
+    
+    // ====== Forgot Password Page ======
+    forgotPasswordTitle: "Passwort Zurücksetzen",
+    forgotPasswordDescription: "Geben Sie Ihre E-Mail ein, um einen Link zur Passwortwiederherstellung zu erhalten",
+    forgotPasswordEmailLabel: "E-Mail-Adresse",
+    forgotPasswordEmailPlaceholder: "du@beispiel.com",
+    forgotPasswordSendButton: "Wiederherstellungslink Senden",
+    forgotPasswordSendingButton: "Wird gesendet...",
+    forgotPasswordSuccessTitle: "✓ E-Mail erfolgreich gesendet!",
+    forgotPasswordSuccessMessage: "Überprüfen Sie Ihren E-Mail-Posteingang auf einen Link zur Passwortwiederherstellung. Der Link läuft in 24 Stunden ab.",
+    forgotPasswordSuccessFooter: "Sehen Sie die E-Mail nicht? Überprüfen Sie Ihren Spam-Ordner oder",
+    forgotPasswordTryAgain: "versuchen Sie es erneut",
+    forgotPasswordBackToLogin: "Zurück zum Login",
+    forgotPasswordOr: "Oder",
+    forgotPasswordNoAccount: "Haben Sie kein Konto?",
+    forgotPasswordSignUp: "Registrieren",
+    forgotPasswordSecurityTip: "💡 Sicherheitstipp:",
+    forgotPasswordSecurityMessage: "Teilen Sie Ihren Wiederherstellungslink niemals. Verwenden Sie nur Links aus offiziellen E-Mails.",
+    forgotPasswordErrorEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    forgotPasswordErrorSend: "Fehler beim Senden der Wiederherstellungs-E-Mail",
+    forgotPasswordErrorUnexpected: "Ein unerwarteter Fehler ist aufgetreten",
+    forgotPasswordSuccessToast: "Wiederherstellungs-E-Mail gesendet! Überprüfen Sie Ihren Posteingang.",
+    
+    // ====== Reset Password Page ======
+    resetPasswordTitle: "Neues Passwort Erstellen",
+    resetPasswordDescription: "Ihr Passwort muss mindestens 8 Zeichen lang sein",
+    resetPasswordTokenLabel: "Wiederherstellungstoken",
+    resetPasswordNewPasswordLabel: "Neues Passwort",
+    resetPasswordNewPasswordPlaceholder: "Mindestens 8 Zeichen",
+    resetPasswordConfirmLabel: "Passwort Bestätigen",
+    resetPasswordConfirmPlaceholder: "Geben Sie Ihr Passwort erneut ein",
+    resetPasswordSubmitButton: "Passwort Zurücksetzen",
+    resetPasswordSubmittingButton: "Wird zurückgesetzt...",
+    resetPasswordStrengthWeak: "Schwach",
+    resetPasswordStrengthMedium: "Mittel",
+    resetPasswordStrengthStrong: "Stark",
+    resetPasswordStrengthLabel: "Passwortstärke:",
+    resetPasswordSuccessTitle: "✓ Passwort erfolgreich zurückgesetzt!",
+    resetPasswordSuccessMessage: "Ihr Passwort wurde geändert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+    resetPasswordSuccessButton: "Zum Login Gehen",
+    resetPasswordSecurityTip: "💡 Passwort-Tipps:",
+    resetPasswordSecurityTip1: "• Verwenden Sie eine Kombination aus Buchstaben, Zahlen und Symbolen",
+    resetPasswordSecurityTip2: "• Vermeiden Sie gängige Wörter oder persönliche Informationen",
+    resetPasswordSecurityTip3: "• Verwenden Sie niemals Passwörter von anderen Konten wieder",
+    resetPasswordErrorToken: "Ungültiges oder fehlendes Wiederherstellungstoken",
+    resetPasswordErrorPassword: "Das Passwort muss mindestens 8 Zeichen lang sein",
+    resetPasswordErrorMismatch: "Passwörter stimmen nicht überein",
+    resetPasswordErrorInvalid: "Ungültiges oder abgelaufenes Wiederherstellungstoken",
+    resetPasswordErrorFailed: "Fehler beim Zurücksetzen des Passworts",
+    resetPasswordErrorUnexpected: "Ein unerwarteter Fehler ist aufgetreten",
+    resetPasswordSuccessToast: "Passwort erfolgreich zurückgesetzt!",
+    resetPasswordEmailLabel: "E-Mail",
+    resetPasswordPasswordPlaceholder: "Neues Passwort eingeben",
+    resetPasswordConfirmPasswordLabel: "Neues Passwort bestätigen",
+    resetPasswordReqLength: "Mindestens 8 Zeichen",
+    resetPasswordReqMatch: "Passwörter stimmen überein",
+    resetPasswordBackButton: "← Zurück zur Wiederherstellungsanfrage",
+    resetPasswordTipsTitle: "Passwort-Tipps:",
+    resetPasswordTipsBody: "Verwenden Sie Groß- und Kleinbuchstaben, Zahlen und Sonderzeichen für maximale Sicherheit.",
+    
+    // ====== Confirm Dialog ======
+    confirmTransfer: "Überweisung Bestätigen",
+    confirmUserTransfer: "Benutzerüberweisung Bestätigen",
+    confirmTransferMessage: "${amount} von ${from} zu ${to} überweisen?",
+    confirmTransferButton: "Überweisen",
+    confirmCancelButton: "Abbrechen",
   },
 };
 
@@ -1028,14 +1373,20 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(
 );
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage if available, otherwise default to "en"
-  const [locale, setLocaleState] = useState<Locale>(() => {
+  // Always start with 'en' on server to avoid hydration mismatch
+  const [locale, setLocaleState] = useState<Locale>('en');
+  const [mounted, setMounted] = useState(false);
+
+  // Hydrate from localStorage after mount
+  useEffect(() => {
+    setMounted(true);
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('vinibank-locale');
-      return (saved === 'pt' || saved === 'en' || saved === 'es' || saved === 'de') ? saved : 'en';
+      if (saved === 'pt' || saved === 'en' || saved === 'es' || saved === 'de') {
+        setLocaleState(saved);
+      }
     }
-    return 'en';
-  });
+  }, []);
 
   // Wrapper to persist locale changes
   const setLocale = (newLocale: Locale) => {

@@ -6,7 +6,10 @@ async function main() {
     console.error("ADMIN_EMAIL is required");
     process.exit(1);
   }
-  const user = await prisma.user.update({ where: { email }, data: { role: "ADMIN" as any } });
+  const user = await prisma.user.update({
+    where: { email },
+    data: { role: 'ADMIN' },
+  });
   console.log("Updated user to ADMIN:", user.email);
 }
 

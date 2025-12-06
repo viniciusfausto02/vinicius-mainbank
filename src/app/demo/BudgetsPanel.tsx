@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { convertAmountCents, formatCurrencyWithRates, localeTagForLocale, parseLocalInputToBaseCents } from "@/lib/currency";
+import { useExchangeRates } from "@/lib/useExchangeRates";
 
 type BudgetRow = {
   id: string;
@@ -16,7 +19,10 @@ type BudgetsPanelProps = {
 };
 
 export default function BudgetsPanel({ onBudgetUpdate }: BudgetsPanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const { currency } = useCurrency();
+  const { rates } = useExchangeRates();
+  const localeTag = localeTagForLocale(locale);
   const [rows, setRows] = useState<BudgetRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,6 +36,16 @@ export default function BudgetsPanel({ onBudgetUpdate }: BudgetsPanelProps) {
 
   const expenseRows = useMemo(() => (rows || []).filter((r) => r.kind === "EXPENSE"), [rows]);
   const incomeRows = useMemo(() => (rows || []).filter((r) => r.kind === "INCOME"), [rows]);
+
+  const formatMoney = useCallback(
+    (cents: number) => formatCurrencyWithRates(cents, locale as any, rates, "USD", currency),
+    [locale, rates, currency],
+  );
+
+  const convertDisplay = useCallback(
+    (cents: number) => convertAmountCents(cents, "USD", currency, rates),
+    [currency, rates],
+  );
 
   async function save() {
     if (!rows) return;
@@ -54,8 +70,14 @@ export default function BudgetsPanel({ onBudgetUpdate }: BudgetsPanelProps) {
     }
   }
 
-  function format(cents: number) {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  function format(cents: number, fractionDigits = 2) {
+    const value = convertDisplay(cents);
+    return new Intl.NumberFormat(localeTag, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: fractionDigits,
+      minimumFractionDigits: fractionDigits,
+    }).format(value);
   }
 
   function Row({ r }: { r: BudgetRow }) {
@@ -74,11 +96,11 @@ export default function BudgetsPanel({ onBudgetUpdate }: BudgetsPanelProps) {
         </div>
         <div className="mt-3 flex items-center gap-2">
           <input
-            value={(r.limitCents / 100).toString()}
+            value={convertDisplay(r.limitCents).toFixed(2)}
             onChange={(e) => {
-              const next = Number(e.target.value.replace(/,/g, "."));
-              if (!Number.isFinite(next) || next < 0) return;
-              setRows((prev) => prev && prev.map((x) => (x.id === r.id ? { ...x, limitCents: Math.round(next * 100) } : x)));
+              const next = parseLocalInputToBaseCents(e.target.value, locale as any, rates, "USD");
+              if (next === null) return;
+              setRows((prev) => prev && prev.map((x) => (x.id === r.id ? { ...x, limitCents: next } : x)));
             }}
             className="w-28 rounded-lg border border-slate-700/50 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-200 outline-none transition-all duration-300 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20"
           />

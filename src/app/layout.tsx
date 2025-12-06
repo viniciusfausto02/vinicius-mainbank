@@ -5,6 +5,8 @@ import { LanguageRoot } from "./LanguageRoot";
 import Navbar from "./Navbar";
 import PageTransition from "@/components/PageTransition";
 import LoadingBar from "@/components/LoadingBar";
+import { ToastProvider } from "@/contexts/ToastContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { Suspense } from "react";
 
 const inter = Inter({
@@ -35,16 +37,20 @@ export default function RootLayout({
       <body className="bg-slate-950 text-slate-50 antialiased overflow-x-hidden relative font-sans">
         {/* LanguageRoot is a small client wrapper that mounts LanguageProvider.
             Navbar + all pages below it will have access to useLanguage(). */}
-        <LanguageRoot>
-          <Suspense>
-            <LoadingBar />
-          </Suspense>
-          <Navbar />
-          {/* Give room for the fixed navbar. */}
-          <PageTransition>
-            <div className="pt-16 sm:pt-20">{children}</div>
-          </PageTransition>
-        </LanguageRoot>
+        <ToastProvider>
+          <LanguageRoot>
+            <CurrencyProvider>
+              <Suspense>
+                <LoadingBar />
+              </Suspense>
+              <Navbar />
+              {/* Give room for the fixed navbar. */}
+              <PageTransition>
+                <div className="pt-16 sm:pt-20">{children}</div>
+              </PageTransition>
+            </CurrencyProvider>
+          </LanguageRoot>
+        </ToastProvider>
       </body>
     </html>
   );

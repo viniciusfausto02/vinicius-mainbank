@@ -8,10 +8,41 @@
 // You run it with: npm run db:seed
 
 import { PrismaClient, AccountType, TransactionKind, Role, CategoryKind } from "@prisma/client";
-import { encrypt, hashForIndex } from "../src/lib/encryption.js";
 import bcryptjs from "bcryptjs";
+import { createCipheriv, randomBytes, pbkdf2Sync } from "crypto";
 
 const prisma = new PrismaClient();
+
+// Encryption helper (copied to avoid import issues in seed)
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 16;
+const SALT_LENGTH = 32;
+const AUTH_TAG_LENGTH = 16;
+const KEY_LENGTH = 32;
+
+function getMasterKey(): Buffer {
+  const secret = process.env.ENCRYPTION_KEY || "default-dev-key-change-in-production-or-security-breach";
+  const salt = process.env.ENCRYPTION_SALT || "default-dev-salt-change-in-production";
+  return pbkdf2Sync(secret, salt, 100000, KEY_LENGTH, "sha256");
+}
+
+function encrypt(plaintext: string): string {
+  if (!plaintext) return "";
+  const key = getMasterKey();
+  const iv = randomBytes(IV_LENGTH);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag();
+  const combined = Buffer.concat([iv, authTag, Buffer.from(encrypted, "hex")]);
+  return combined.toString("base64");
+}
+
+function hashForIndex(value: string): string {
+  if (!value) return "";
+  // Simple hash for index - not cryptographically secure but sufficient for DB search
+  return Buffer.from(value).toString("base64").substring(0, 20);
+}
 
 async function main() {
   // Clean existing data (safe for local dev / demo).
@@ -174,6 +205,45 @@ async function main() {
       { userId: user.id, categoryId: groceries.id, month, year, limitCents: 40000 },
       { userId: user.id, categoryId: entertainment.id, month, year, limitCents: 15000 },
       { userId: user.id, categoryId: subscriptions.id, month, year, limitCents: 10000 },
+    ],
+  });
+
+  // Create demo savings goals
+  await prisma.savingsGoal.createMany({
+    data: [
+      {
+        userId: user.id,
+        name: "Emergency Fund",
+        description: "6 months of expenses for financial security",
+        targetCents: 1800000, // $18,000
+        currentCents: 720000, // $7,200 (40%)
+        targetDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000), // 6 months from now
+        icon: "🛡️",
+        color: "#3b82f6",
+        status: "ACTIVE",
+      },
+      {
+        userId: user.id,
+        name: "Vacation to Europe",
+        description: "Trip to Paris, Rome and Barcelona",
+        targetCents: 500000, // $5,000
+        currentCents: 320000, // $3,200 (64%)
+        targetDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000), // 3 months from now
+        icon: "✈️",
+        color: "#8b5cf6",
+        status: "ACTIVE",
+      },
+      {
+        userId: user.id,
+        name: "New Laptop",
+        description: "MacBook Pro for work and development",
+        targetCents: 250000, // $2,500
+        currentCents: 180000, // $1,800 (72%)
+        targetDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000), // 1.5 months from now
+        icon: "💻",
+        color: "#10b981",
+        status: "ACTIVE",
+      },
     ],
   });
 

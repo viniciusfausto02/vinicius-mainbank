@@ -3,17 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { TransactionKind, Account } from "@prisma/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { TransactionWithAccounts } from "./page";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-
-function formatCurrency(amountCents: number, locale: string, currency = "USD"): string {
-  const amount = amountCents / 100;
-  return new Intl.NumberFormat(locale === "pt" ? "pt-BR" : "en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatCurrencyWithRates } from "@/lib/currency";
+import { useExchangeRates } from "@/lib/useExchangeRates";
 
 type TransactionsTableProps = {
   transactions: TransactionWithAccounts[];
@@ -24,6 +18,7 @@ type TransactionsTableProps = {
 
 export default function TransactionsTable({ transactions, accounts, compact, limit }: TransactionsTableProps) {
   const { t, locale } = useLanguage();
+  const { currency } = useCurrency();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -35,6 +30,11 @@ export default function TransactionsTable({ transactions, accounts, compact, lim
   const [dateRange, setDateRange] = useState<string>(params.get("dr") ?? "all");
   const [page, setPage] = useState<number>(Number(params.get("p") ?? 1));
   const pageSize = 10;
+  const { rates } = useExchangeRates();
+  const formatMoney = useMemo(
+    () => (amountCents: number, baseCurrency: string = "USD") => formatCurrencyWithRates(amountCents, locale as any, rates, baseCurrency, currency),
+    [locale, rates, currency],
+  );
 
   useEffect(() => {
     if (compact) return; // don't sync in compact mode
@@ -201,12 +201,13 @@ export default function TransactionsTable({ transactions, accounts, compact, lim
                 const isCredit = tx.kind === TransactionKind.CREDIT || (tx.amountCents > 0 && tx.kind !== TransactionKind.DEBIT);
                 const amountColor = isCredit ? "text-emerald-400" : "text-rose-400";
                 const currency = tx.toAccount?.currency || tx.fromAccount?.currency || "USD";
+                const formattedAmount = formatMoney(tx.amountCents, currency);
                 return (
                   <tr key={tx.id} className="transition-colors hover:bg-slate-800/30">
                     <td className="px-6 py-4 text-sm font-medium text-white">{tx.description}</td>
                     <td className="px-6 py-4 text-sm text-slate-400">{tx.fromAccount ? `${tx.fromAccount.name} (${tx.fromAccount.mask})` : "—"}</td>
                     <td className="px-6 py-4 text-sm text-slate-400">{tx.toAccount ? `${tx.toAccount.name} (${tx.toAccount.mask})` : "—"}</td>
-                    <td className={`px-6 py-4 text-right text-sm font-semibold ${amountColor}`}>{isCredit ? "+" : ""}{new Intl.NumberFormat(locale === "pt" ? "pt-BR" : "en-US", { style: "currency", currency }).format(tx.amountCents / 100)}</td>
+                    <td className={`px-6 py-4 text-right text-sm font-semibold ${amountColor}`}>{isCredit ? "+" : ""}{formattedAmount}</td>
                     <td className="px-6 py-4 text-right"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${isCredit ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{tx.kind.toLowerCase()}</span></td>
                   </tr>
                 );

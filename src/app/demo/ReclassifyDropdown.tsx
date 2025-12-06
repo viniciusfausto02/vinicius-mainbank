@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Props = {
   transactionId: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ReclassifyDropdown({ transactionId, currentCategoryId, currentCategoryName, onSuccess }: Props) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -51,14 +53,14 @@ export default function ReclassifyDropdown({ transactionId, currentCategoryId, c
       </button>
       {open && (
         <div className="absolute right-0 top-8 z-10 w-48 rounded-xl border border-slate-800 bg-slate-950/95 p-2 shadow-xl">
-          {loading && <p className="text-xs text-slate-400">Loading…</p>}
+          {loading && <p className="text-xs text-slate-400">{t('reclassifyLoading')}</p>}
           {!loading && (
             <>
               <button
                 onClick={() => assign(null)}
                 className="w-full rounded px-2 py-1 text-left text-xs text-slate-300 hover:bg-slate-800"
               >
-                Uncategorized
+                {t('reclassifyUncategorized')}
               </button>
               {categories.map((c) => (
                 <button

@@ -63,7 +63,7 @@ export default function Tabs({ items, defaultKey, value, onValueChange, classNam
         ref={listRef}
         role="tablist"
         aria-orientation="horizontal"
-        className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-900/60 p-1"
+        className="flex flex-wrap gap-1 sm:gap-2 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-1"
         onKeyDown={(e) => {
           const idx = items.findIndex(i => i.key === active);
           if (idx === -1) return;

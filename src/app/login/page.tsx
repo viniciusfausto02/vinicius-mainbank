@@ -150,6 +150,16 @@ function LoginPageContent() {
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-800/0 via-slate-700/50 to-slate-800/0 opacity-0 transition-opacity duration-300 group-hover/google:opacity-100" />
             </button>
 
+            {/* Forgot Password Link */}
+            <div className="mt-6 text-center">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-slate-400 hover:text-slate-300 transition-colors duration-300"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
             <p className="mt-8 text-center text-sm text-slate-400">
               {t("loginNoAccount")} {" "}
               <Link

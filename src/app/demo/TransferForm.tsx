@@ -16,6 +16,8 @@ import { useState, FormEvent } from "react";
 import { Account } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type TransferFormProps = {
   accounts: Account[];
@@ -25,6 +27,8 @@ type TransferFormProps = {
 export default function TransferForm({ accounts, onTransferSuccess }: TransferFormProps) {
   const { t } = useLanguage();
   const router = useRouter();
+  const toast = useToast();
+  const { confirm, ConfirmDialogComponent } = useConfirm();
 
   // Local form state. Storing ids as strings and amount as string
   // so we can easily capture the raw input and then normalize.
@@ -37,9 +41,9 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
   const fromAccount = accounts.find(a => a.id === fromAccountId) || null;
+  const toAccount = accounts.find(a => a.id === toAccountId) || null;
   const parsedCents = (() => {
     const n = Number(amount.replace(",", "."));
     if (!Number.isFinite(n)) return null;
@@ -58,29 +62,43 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setSuccessMessage(null);
 
     const amountCents = parseAmountToCents(amount);
 
+    // Validações
     if (!amountCents) {
-      setError(t("transferErrorAmount"));
+      toast.error(t("transferErrorAmount"));
       return;
     }
+    
     if (insufficientFunds) {
-      setError(t("transferInsufficientFunds"));
+      toast.error(t("transferInsufficientFunds"));
       return;
     }
 
     if (!fromAccountId || !toAccountId) {
-      setError(t("transferErrorAccounts"));
+      toast.error(t("transferErrorAccounts"));
       return;
     }
 
     if (fromAccountId === toAccountId) {
-      setError(t("transferErrorSameAccount"));
+      toast.error(t("transferErrorSameAccount"));
       return;
     }
+
+    // Confirmar transferência
+    const confirmed = await confirm({
+      title: t('confirmTransfer'),
+      message: t('confirmTransferMessage')
+        .replace('${amount}', `$${(amountCents / 100).toFixed(2)}`)
+        .replace('${from}', fromAccount?.name || 'Account')
+        .replace('${to}', toAccount?.name || 'Account'),
+      confirmText: t('confirmTransferButton'),
+      cancelText: t('confirmCancelButton'),
+      variant: 'warning',
+    });
+
+    if (!confirmed) return;
 
     setIsSubmitting(true);
 
@@ -105,11 +123,11 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data?.error ?? t("transferErrorFailed"));
+        toast.error(data?.error ?? t("transferErrorFailed"));
         return;
       }
 
-      setSuccessMessage(t("transferSuccess"));
+      toast.success(t("transferSuccess"));
       setAmount("");
       setDescription("");
 
@@ -123,7 +141,7 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
       }
     } catch (err) {
       console.error("[TransferForm] error:", err);
-      setError(t("transferErrorUnexpected"));
+      toast.error(t("transferErrorUnexpected"));
     } finally {
       setIsSubmitting(false);
     }
@@ -131,6 +149,7 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
 
   return (
     <>
+      <ConfirmDialogComponent />
       {/* The form itself – designed mobile-first:
           - On small screens everything is stacked.
           - On larger screens, fields align side by side where it helps. */}
@@ -208,18 +227,6 @@ export default function TransferForm({ accounts, onTransferSuccess }: TransferFo
             />
           </div>
         </div>
-
-        {/* Error and success messages are clearly visible and mobile-friendly */}
-        {error && (
-          <p className="text-xs text-rose-300 bg-rose-950/40 border border-rose-800/70 rounded-xl px-3 py-2">
-            {error}
-          </p>
-        )}
-        {successMessage && (
-          <p className="text-xs text-emerald-300 bg-emerald-950/40 border border-emerald-800/70 rounded-xl px-3 py-2">
-            {successMessage}
-          </p>
-        )}
 
         {/* Submit button: low height, more horizontal than vertical */}
         <div className="flex justify-end">

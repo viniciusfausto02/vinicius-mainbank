@@ -6,25 +6,36 @@
 // Responsibilities:
 // - Show brand link and basic navigation links (Home, Demo, Login, Register).
 // - Expose language dropdown, backed by LanguageContext.
+// - Expose currency dropdown, backed by CurrencyContext.
 // - Be mobile-friendly and fixed to the top of the viewport.
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const { locale, setLocale, t } = useLanguage();
+  const { currency, setCurrency } = useCurrency();
   const { data: session, status } = useSession();
 
   // Local UI state for the language dropdown open/close.
   const [open, setOpen] = useState<boolean>(false);
+  // Local UI state for the currency dropdown open/close.
+  const [currencyOpen, setCurrencyOpen] = useState<boolean>(false);
   // Mobile menu toggle (single navbar, no second bar)
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const currencyDropdownRef = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
 
-  // Close the dropdown when clicking outside.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close the language dropdown when clicking outside.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -46,6 +57,28 @@ export default function Navbar() {
     };
   }, [open]);
 
+  // Close the currency dropdown when clicking outside.
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        currencyDropdownRef.current &&
+        !currencyDropdownRef.current.contains(event.target as Node)
+      ) {
+        setCurrencyOpen(false);
+      }
+    }
+
+    if (currencyOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [currencyOpen]);
+
   // Current flag and label
   const currentFlag = (() => {
     switch (locale) {
@@ -54,6 +87,21 @@ export default function Navbar() {
       case "es": return { src: "/flags/es.svg", alt: "ES" };
       case "de": return { src: "/flags/de.svg", alt: "DE" };
       default: return { src: "/flags/us.svg", alt: "EN" };
+    }
+  })();
+
+  // Currency symbol and label
+  const currencySymbol = (() => {
+    switch (currency) {
+      case "USD": return "$";
+      case "BRL": return "R$";
+      case "EUR": return "€";
+      case "GBP": return "£";
+      case "JPY": return "¥";
+      case "CAD": return "C$";
+      case "AUD": return "A$";
+      case "CHF": return "CHF";
+      default: return "$";
     }
   })();
 
@@ -91,7 +139,7 @@ export default function Navbar() {
 
           {/* Right: Auth + Language */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {status === "authenticated" ? (
+            {mounted && status === "authenticated" ? (
               <>
                 <div className="hidden lg:flex items-center gap-2.5 rounded-xl bg-emerald-500/10 px-4 py-2.5 border border-emerald-500/30 backdrop-blur-sm">
                   <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,1)] animate-pulse" />
@@ -106,7 +154,7 @@ export default function Navbar() {
                   {t("navSignOut")}
                 </button>
               </>
-            ) : (
+            ) : mounted && status !== "loading" ? (
               <>
                 <Link
                   href="/login"
@@ -122,7 +170,191 @@ export default function Navbar() {
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 </Link>
               </>
-            )}
+            ) : null}
+
+            {/* Currency dropdown */}
+            <div ref={currencyDropdownRef} className="relative z-[550]">
+              <button
+                type="button"
+                onClick={() => setCurrencyOpen((prev) => !prev)}
+                className="group flex items-center gap-1 sm:gap-1.5 rounded-lg sm:rounded-xl bg-cyan-500/10 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 border border-cyan-500/30 backdrop-blur-sm transition-all duration-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 whitespace-nowrap"
+              >
+                <span className="text-xs sm:text-sm font-bold text-cyan-100">{currencySymbol}</span>
+                <ChevronDown className={`h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-white transition-all duration-300 ${currencyOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {currencyOpen && (
+                <div className="absolute right-0 top-11 sm:top-12 md:top-14 z-[560] w-40 sm:w-48 md:w-56 rounded-lg sm:rounded-xl md:rounded-2xl border border-cyan-500/20 bg-slate-900/98 p-1 sm:p-1.5 md:p-2 shadow-[0_20px_70px_rgba(34,211,238,0.3)] backdrop-blur-2xl">
+                  {/* USD */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("USD"); setCurrencyOpen(false); }}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-all duration-300 ${
+                      currency === "USD"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      <span className="text-sm">$</span>
+                      <span>USD</span>
+                    </span>
+                    {currency === "USD" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* BRL */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("BRL"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "BRL"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">R$</span>
+                      <span>BRL</span>
+                    </span>
+                    {currency === "BRL" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* EUR */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("EUR"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "EUR"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">€</span>
+                      <span>EUR</span>
+                    </span>
+                    {currency === "EUR" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* GBP */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("GBP"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "GBP"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">£</span>
+                      <span>GBP</span>
+                    </span>
+                    {currency === "GBP" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* JPY */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("JPY"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "JPY"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">¥</span>
+                      <span>JPY</span>
+                    </span>
+                    {currency === "JPY" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* CAD */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("CAD"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "CAD"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">C$</span>
+                      <span>CAD</span>
+                    </span>
+                    {currency === "CAD" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* AUD */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("AUD"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "AUD"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">A$</span>
+                      <span>AUD</span>
+                    </span>
+                    {currency === "AUD" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  {/* CHF */}
+                  <button
+                    type="button"
+                    onClick={() => { setCurrency("CHF"); setCurrencyOpen(false); }}
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
+                      currency === "CHF"
+                        ? "bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white shadow-lg shadow-cyan-500/20"
+                        : "text-slate-200 hover:bg-cyan-500/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 sm:gap-2 md:gap-3 font-semibold">
+                      <span className="text-sm sm:text-base md:text-lg">CHF</span>
+                      <span>CHF</span>
+                    </span>
+                    {currency === "CHF" && (
+                      <span className="rounded-full bg-cyan-400/30 px-1.5 sm:px-2 md:px-2.5 py-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/40 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Language dropdown */}
             <div ref={dropdownRef} className="relative z-[550]">
@@ -141,7 +373,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => { setLocale("en"); setOpen(false); }}
-                    className={`flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 text-left transition-all duration-300 ${
+                    className={`flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
                       locale === "en"
                         ? "bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 text-white shadow-lg shadow-emerald-500/20"
                         : "text-slate-200 hover:bg-emerald-500/10 hover:text-white"
@@ -162,7 +394,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => { setLocale("pt"); setOpen(false); }}
-                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 text-left transition-all duration-300 ${
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
                       locale === "pt"
                         ? "bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 text-white shadow-lg shadow-emerald-500/20"
                         : "text-slate-200 hover:bg-emerald-500/10 hover:text-white"
@@ -183,7 +415,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => { setLocale("es"); setOpen(false); }}
-                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 text-left transition-all duration-300 ${
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
                       locale === "es"
                         ? "bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 text-white shadow-lg shadow-emerald-500/20"
                         : "text-slate-200 hover:bg-emerald-500/10 hover:text-white"
@@ -204,7 +436,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => { setLocale("de"); setOpen(false); }}
-                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 text-left transition-all duration-300 ${
+                    className={`mt-0.5 sm:mt-1 flex w-full items-center justify-between rounded-lg sm:rounded-lg md:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-left text-xs sm:text-xs md:text-sm transition-all duration-300 ${
                       locale === "de"
                         ? "bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 text-white shadow-lg shadow-emerald-500/20"
                         : "text-slate-200 hover:bg-emerald-500/10 hover:text-white"
@@ -254,7 +486,7 @@ export default function Navbar() {
                 <span className="text-lg">📊</span>
                 {t("navDashboard")}
               </Link>
-              {status === "authenticated" && (session.user as any)?.role === "ADMIN" && (
+              {mounted && status === "authenticated" && (session.user as any)?.role === "ADMIN" && (
                 <Link href="/admin" onClick={() => setMobileOpen(false)} className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-semibold text-cyan-100 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all duration-300">
                   <span className="text-lg">⚙️</span>
                   {t("navAdmin")}
@@ -266,7 +498,7 @@ export default function Navbar() {
             <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
 
             {/* Auth section */}
-            {status === "authenticated" ? (
+            {mounted && status === "authenticated" ? (
               <div className="space-y-3">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400/70 px-1">Account</p>
                 <div className="rounded-xl bg-emerald-500/10 px-4 py-3.5 border border-emerald-500/30 flex items-center gap-3">
@@ -284,7 +516,7 @@ export default function Navbar() {
                   {t("navSignOut")}
                 </button>
               </div>
-            ) : (
+            ) : mounted && status !== "loading" ? (
               <div className="space-y-3">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400/70 px-1">Authentication</p>
                 <Link 
@@ -305,7 +537,7 @@ export default function Navbar() {
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 </Link>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
